@@ -9,7 +9,7 @@ func wrapUpstream(err error) error {
 	if err == nil {
 		return nil
 	}
-	return fmt.Errorf("upstream failed: %v", err)
+	return fmt.Errorf("%w: %v", ErrUpstream, err)
 }
 
 func wrapCancel(err error) error {
