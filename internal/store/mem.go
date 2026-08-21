@@ -22,6 +22,16 @@ func (m *Mem) Get(k string) (entry.Entry, bool) {
 	return entry.CloneEntry(e), true
 }
 
+// Peek 读取键的当前条目副本，但不计入命中、不改变内部状态。
+// 用于回滚前抓取旧值快照，避免 Get 的 Hits 自增副作用污染计数。
+func (m *Mem) Peek(k string) (entry.Entry, bool) {
+	e, ok := m.data[k]
+	if !ok {
+		return entry.Entry{}, false
+	}
+	return entry.CloneEntry(e), true
+}
+
 func (m *Mem) Put(k string, e entry.Entry) {
 	if _, ok := m.data[k]; !ok {
 		if len(m.data) >= m.max && len(m.order) > 0 {

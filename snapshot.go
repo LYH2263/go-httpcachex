@@ -32,8 +32,17 @@ func (c *Cache) Purge(k string) error {
 	if c.closed {
 		return ErrClosed
 	}
+	// 记住被删条目，落盘失败时恢复，避免内存删了磁盘没删的半成功状态。
+	// 用 Peek 避免触发命中计数。
+	prev, ok := c.store.Peek(k)
 	c.store.Delete(k)
-	return c.persistLocked()
+	if err := c.persistLocked(); err != nil {
+		if ok {
+			c.store.Put(k, prev)
+		}
+		return err
+	}
+	return nil
 }
 
 // Stats 计数。

@@ -29,7 +29,18 @@ func (c *Cache) Revalidate(ctx context.Context, k string, req Request) error {
 	}
 	up := Response{Status: upRaw.Status, Headers: upRaw.Headers, Body: upRaw.Body}
 	e := entryFrom(k, req.URL, nil, up, c.clk.Now(), c.opts.DefaultTTL, c.opts.SWR)
+	// 记住覆盖前的旧条目，落盘失败时回滚为它，而不是删除
+	// （删除会丢掉原本仍可用的旧响应）。用 Peek 避免触发命中计数。
+	prev, hasPrev := c.store.Peek(k)
 	c.store.Put(k, e)
+	if err := c.persistLocked(); err != nil {
+		if hasPrev {
+			c.store.Put(k, prev)
+		} else {
+			c.store.Delete(k)
+		}
+		return err
+	}
 	c.metrics.IncRevalidate()
-	return c.persistLocked()
+	return nil
 }

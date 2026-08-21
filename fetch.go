@@ -56,7 +56,9 @@ func (c *Cache) FetchContext(ctx context.Context, req Request) (Response, bool, 
 	e := entryFrom(k, req.URL, key.VaryNames(req.Headers), up, c.clk.Now(), c.opts.DefaultTTL, c.opts.SWR)
 	c.store.Put(k, e)
 	if err := c.persistLocked(); err != nil {
-
+		// 落盘失败：回滚内存索引，避免"内存有、磁盘无"的半成功条目，
+		// 否则同进程会脏命中、重启又消失，且 Snapshot 与磁盘对不上。
+		c.store.Delete(k)
 		return Response{}, false, err
 	}
 	if c.audit != nil {
