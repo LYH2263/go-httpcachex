@@ -20,6 +20,9 @@ func (c *Cache) FetchContext(ctx context.Context, req Request) (Response, bool, 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.closed {
+		return Response{}, false, ErrClosed
+	}
 	if c.rt == nil {
 		return Response{}, false, ErrNoTransport
 	}
