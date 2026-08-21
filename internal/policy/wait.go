@@ -12,8 +12,12 @@ func (p Policy) WaitFetch(ctx context.Context) error {
 	}
 }
 
-// WaitRevalidate 后台刷新前检查取消。
+// WaitRevalidate 后台刷新前检查取消，与 WaitFetch 一致。
 func (p Policy) WaitRevalidate(ctx context.Context) error {
-	_ = ctx
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 }

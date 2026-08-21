@@ -1,6 +1,7 @@
 package httpcachex
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
@@ -23,17 +24,24 @@ type Cache struct {
 	audit   *audit.Logger
 	metrics *metrics.Registry
 	closed  bool
+
+	// lifecycleCtx 在 Close 时取消，用于停止后台刷新 goroutine。
+	lifecycleCtx    context.Context
+	lifecycleCancel context.CancelFunc
 }
 
 func New(opts Options) (*Cache, error) {
 	opts.normalize()
+	ctx, cancel := context.WithCancel(context.Background())
 	c := &Cache{
-		opts:    opts,
-		store:   store.New(opts.MaxEntries),
-		clk:     opts.Clock,
-		pol:     opts.Policy,
-		rt:      opts.Transport,
-		metrics: metrics.New(),
+		opts:            opts,
+		store:           store.New(opts.MaxEntries),
+		clk:             opts.Clock,
+		pol:             opts.Policy,
+		rt:              opts.Transport,
+		metrics:         metrics.New(),
+		lifecycleCtx:    ctx,
+		lifecycleCancel: cancel,
 	}
 	if opts.PersistPath != "" {
 		c.persist = persist.New(opts.PersistPath)
