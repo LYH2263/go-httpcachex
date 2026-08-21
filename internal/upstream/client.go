@@ -38,6 +38,9 @@ func Do(ctx context.Context, rt http.RoundTripper, req Req) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	// 无论后续读取/拷贝成功与否，都必须关闭 Body，否则底层 TCP 连接无法
+	// 归还连接池，压测下句柄/FD 只增不减，最终连接耗尽、新请求全部卡死。
+	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
