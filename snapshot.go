@@ -1,19 +1,17 @@
 package httpcachex
 
-import "example.com/httpcachex/internal/key"
-
-// Snapshot 导出缓存条目视图。
+// Snapshot 导出缓存条目视图。返回的切片与字段均为独立拷贝，
+// 调用方修改 EntryView（含 Vary 脱敏）不会写穿缓存内部状态。
 func (c *Cache) Snapshot() []EntryView {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	raw := c.store.List()
 	out := make([]EntryView, 0, len(raw))
 	for _, e := range raw {
-		vary := e.Vary
 		out = append(out, EntryView{
 			Key:        e.Key,
 			URL:        e.URL,
-			Vary:       vary,
+			Vary:       append([]string(nil), e.Vary...),
 			Status:     e.Status,
 			Hits:       e.Hits,
 			BodyLen:    len(e.Body),
@@ -21,7 +19,6 @@ func (c *Cache) Snapshot() []EntryView {
 			StaleUntil: e.StaleUntil,
 		})
 	}
-	_ = key.Build
 	return out
 }
 

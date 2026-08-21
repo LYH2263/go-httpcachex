@@ -24,6 +24,7 @@ func CloneEntry(e Entry) Entry {
 	out := e
 	out.Body = CloneBytes(e.Body)
 	out.Headers = CloneHeaders(e.Headers)
-	out.Vary = e.Vary
+	// Vary 必须深拷贝，否则克隆体与源共享底层数组，外部修改会写穿缓存条目。
+	out.Vary = append([]string(nil), e.Vary...)
 	return out
 }
