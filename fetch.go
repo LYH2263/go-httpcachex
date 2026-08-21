@@ -26,6 +26,9 @@ func (c *Cache) FetchContext(ctx context.Context, req Request) (Response, bool, 
 	if req.URL == "" {
 		return Response{}, false, ErrInvalid
 	}
+	if c.rt == nil {
+		return Response{}, false, ErrNoTransport
+	}
 	if err := c.pol.WaitFetch(ctx); err != nil {
 		return Response{}, false, wrapCancel(err)
 	}
